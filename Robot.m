@@ -38,22 +38,32 @@ classdef Robot < handle
             %  DH-Parameter for KR16 Robot                  *
             %************************************************
 
-            
-            obj.DHP=[ 1,1,0,0,0,90;
-                        1,1,0,200,0,0;
-                        1,1,0,100,0,0
-                        ];
+%             % RRR Planar Movements
+%             obj.DHP=[ 1,1,90,0,0,0;
+%                         1,1,0,200,0,0;
+%                         1,1,0,100,0,0
+%                         ];
                     
 %             obj.DHP=[ 1,1,90,0,0,0;
 %                         1,1,90,200,0,0;
 %                         1,1,0,100,0,0
 %                         ];        
-                    
+
+            obj.DHP= [    
+                                    1, 1,   180,    0,      -675,   0;
+                                    1, 1,   90,     260,    0,      0;
+                                    1, 1,   0,      680,    0,      90;
+                                    1, 1,   -90,    35,     -670,   0;
+                                    1, 1,   90,     0,      0,          0;
+                                    1, -1,  90,     0,      115,    0];
+
+            obj.Base = eye(4);
+            obj.Endeffector = eye(4);
+
+
                     
 
-            obj.Base=eye(4);
-            obj.Endeffector=eye(4);
-            obj.Endeffector(:,4) = [100; 0; 0; 1];
+
             obj.NumberOfJoints = size(obj.DHP, 1);
             %obj.Gyros = 
         end
@@ -87,7 +97,11 @@ classdef Robot < handle
             %
             %error(nargchk(2,2,nargin));
             
-            dhp = robot.DHP;
+            T=zeros(4);
+
+            dhp = obj.DHP;
+            % calculate the full foward kinematics starting from the baseframe up to
+            % the end effector
             q = [q(:,end); 0];
             dhp = [robot.DHP; 0 0 0 obj.Endeffector(1, 4) 0 0];
             T = robot.Base;
@@ -103,9 +117,9 @@ classdef Robot < handle
                 rot{i} = zeros(4,4);
                 rot{i}(4,4) = 1;
                 rot{i}(1:3,1:3) = T(1:3, 1:3);
-                
             end
-            T = T*robot.Endeffector;
+
+            T = T * obj.Endeffector;
         end
         
         function q = kr16_rk(obj, tg,bas,eff,pose)
@@ -133,51 +147,127 @@ classdef Robot < handle
             %
             %error(nargchk(4,4,nargin));
 
-            [m,n] = size(bas);
-            if (n ~= 4)|(m ~= 4)
-                error('Base Frame must be 4 by 4');
+%             [m,n] = size(bas);
+%             if (n ~= 4)|(m ~= 4)
+%                 error('Base Frame must be 4 by 4');
+%             end
+% 
+%             [m,n] = size(eff);
+%             if (n ~= 4)|(m ~= 4)
+%                 error('Tool Frame must be 4 by 4');
+%             end
+% 
+%             [m,n] = size(tg);
+%             if (n ~= 4)|(m ~= 4)
+%                 error('Goal Frame must be 4 by 4');
+%             end
+% 
+%             if (pose<1)|(pose>8)
+%                 error('Configuration must be between 1 and 8');
+%             end
+
+
+
+%             x = tg(1,4);
+%             y = tg(2,4);
+%             phi = tg(3,4);
+% 
+%             l1 = abs(obj.DHP(2,4));
+%             l2 = abs(obj.DHP(3,4));
+%             l3 = 100;
+% 
+%             c2 = (x^2 + y^2 - l1^2 - l2^2) / (2*l1*l2);
+%             s2_1 = sqrt(1-c2^2);
+%             s2_2 = -s2_1;
+% 
+%             theta2_1 = rad2deg(atan2(s2_1, c2));
+%             theta2_2 = rad2deg(atan2(s2_2, c2));
+% 
+%             c1_1 = (x*(l1+l2*c2) + y*l2*s2_1)/(l1^2+l2^2+2*l1*l2*c2);
+%             c1_2 = (x*(l1+l2*c2) + y*l2*s2_1)/(l1^2+l2^2+2*l1*l2*c2);
+%             s1_1 = (y*(l1+l2*c2)-x*l2*s2_1)/(l1^2+l2^2+2*l1*l2*c2);
+%             s1_2 = (y*(l1+l2*c2)-x*l2*s2_2)/(l1^2+l2^2+2*l1*l2*c2);
+%             theta1 = rad2deg((atan2(s1_1,c1_1)));
+% 
+%             theta3 = phi - theta1 - theta2_1;
+% 
+%             q = [theta1 theta2_1 theta3]';
+
+            
+            %generate roboter
+
+            dhp = obj.DHP;
+
+            % calculate the position of the center spherical wrist
+            df = abs(dhp(6, 5));
+            P04org = inv(bas) * tg * inv(eff) * [0; 0; -df; 1];
+
+            p4x = P04org(1);
+            p4y = P04org(2);
+            p4z = P04org(3);
+
+            % theta1-3 according to formulas on the slides
+            % theta1
+            if(pose == 1 || pose == 2 || pose == 3 || pose == 4)
+                theta1 = rad2deg(atan2(-p4y, p4x));
+            else
+                theta1 = rad2deg(atan2(p4y, -p4x));
             end
 
-            [m,n] = size(eff);
-            if (n ~= 4)|(m ~= 4)
-                error('Tool Frame must be 4 by 4');
+            % theta2
+            r = p4x * cosd(theta1) - p4y * sind(theta1);
+
+            a1 = abs(dhp(2, 4));
+            d1 = abs(dhp(1, 5));
+            a2 = abs(dhp(3, 4));
+            a3 = abs(dhp(4, 4));
+
+            k1 = r - a1;
+            k2 = d1 - p4z;
+            d4 = abs(dhp(4, 5));
+            k3 = ((r - a1)^2 + (d1 - p4z)^2 + a2^2 - a3^2 - d4^2) / (2 * a2);
+
+            if(pose == 1 || pose == 2 || pose == 7 || pose == 8)
+                theta2 = rad2deg(atan2(k2,k1) + atan2(sqrt(k1^2 + k2^2 - k3^2),k3));
+            else
+                theta2 = rad2deg(atan2(k2,k1) - atan2(sqrt(k1^2 + k2^2 - k3^2),k3));
             end
 
-            [m,n] = size(tg);
-            if (n ~= 4)|(m ~= 4)
-                error('Goal Frame must be 4 by 4');
+            % theta3
+            k4 = -a1 - a2 * cosd(theta2) + r;
+            k5 = -a2 * sind(theta2) + d1 - p4z;
+
+            theta3 = -theta2 + rad2deg(atan2(d4 * k5 - a3 * k4, d4 * k4 + a3 * k5));
+
+            % change of orientation caused by the spherical wrist R3F
+            % forward kinematics of the first three axes
+            dhp = obj.DHP;
+            T03 = obj.Base;
+            q = [theta1; theta2; theta3];
+            for i = 1:3
+                alpha = dhp(i, 3);
+                a = dhp(i, 4);
+                d = dhp(i, 5);
+                theta = dhp(i, 6) + q(i) * dhp(i, 2);    % angle * sign
+                T_current = dh_trafo_craig(alpha, a, d, theta);
+                T03 = T03 * T_current;    
             end
 
-            if (pose<1)|(pose>8)
-                error('Configuration must be between 1 and 8');
+            T6F = [-1 0 0 0; 0 1 0 0; 0 0 -1 -df; 0 0 0 1]; % from the script
+            T36 = inv(T03) * inv(bas) * tg * inv(eff) * inv(T6F);
+
+            if(pose == 1 || pose == 3 || pose == 5 || pose == 7)
+                theta5 = rad2deg(atan2(sqrt(T36(2, 1)^2 + T36(2, 2)^2), T36(2, 3)));
+                theta4 = rad2deg(atan2(T36(3, 3) / sind(theta5), -T36(1,3) / sind(theta5)));
+                theta6 = rad2deg(atan2(-T36(2, 2) / sind(theta5), T36(2, 1) / sind(theta5)));
+            else
+                theta5 = rad2deg(atan2(-sqrt(T36(2, 1)^2 + T36(2, 2)^2), T36(2, 3)));
+                theta4 = rad2deg(atan2(T36(3, 3) / sind(theta5),- T36(1, 3) / sind(theta5)));
+                theta6 = rad2deg(atan2(-T36(2, 2) / sind(theta5), T36(2, 1) / sind(theta5)));
             end
 
+            q = [theta1 theta2 theta3 theta4 theta5 theta6]';   
 
-
-            x = tg(1,4);
-            y = tg(2,4);
-            phi = tg(3,4);
-
-            l1 = abs(obj.DHP(2,4));
-            l2 = abs(obj.DHP(3,4));
-            l3 = 100;
-
-            c2 = (x^2 + y^2 - l1^2 - l2^2) / (2*l1*l2);
-            s2_1 = sqrt(1-c2^2);
-            s2_2 = -s2_1;
-
-            theta2_1 = rad2deg(atan2(s2_1, c2));
-            theta2_2 = rad2deg(atan2(s2_2, c2));
-
-            c1_1 = (x*(l1+l2*c2) + y*l2*s2_1)/(l1^2+l2^2+2*l1*l2*c2);
-            c1_2 = (x*(l1+l2*c2) + y*l2*s2_1)/(l1^2+l2^2+2*l1*l2*c2);
-            s1_1 = (y*(l1+l2*c2)-x*l2*s2_1)/(l1^2+l2^2+2*l1*l2*c2);
-            s1_2 = (y*(l1+l2*c2)-x*l2*s2_2)/(l1^2+l2^2+2*l1*l2*c2);
-            theta1 = rad2deg((atan2(s1_1,c1_1)));
-
-            theta3 = phi - theta1 - theta2_1;
-
-            q = [theta1 theta2_1 theta3]';
         end
         
         function [tx, ax] = create_lin_seg_list(obj, e1,e2,vc,amax,t_ipo)
@@ -201,31 +291,53 @@ classdef Robot < handle
             %****************************************************************
             %Implement your code here
 
+
             tx=[0 0 0]';
             ax=[0 0 0]';
 
-            dist_vect = e2(1:3) - e1(1:3);  %Abstandsvektor
-            s_tot = norm(dist_vect);    %Weg zwischen Punkt1 und Punkt2
-            tb = t_ipo * ceil((vc / amax) / t_ipo); %Beschleunigungszeit auf auf Vc (angepaßt an t_ipo)
-            sb = amax/2 * tb^2; %Weg bis zur Vc
-            if 2 * sb >= s_tot
-                sb = s_tot / 2; %Beschleunigungsweg = halber Gesamtweg
-                tb = sqrt(sb / (amax/2));   %errechnete Beschleunigungszeit
-                tb = t_ipo * ceil(tb / t_ipo);   %Beschleunigungszeit angepaßt auf t_ipo
-                tx = [tb 0 tb]; 
-                a = (sb / tb^2) * 2;    %tatsächliche Beschleunigung
-                ax = [a 0 -a];
+            % calculate the eucledian norm
+            s_totalal = norm(e2 - e1);
 
-            else
-                %Beschleunigung und Verzögerungphase
-                tx = [tb 0 tb];
-                a = vc / tx(1);
-                ax = [a 0 -a];
+            % check if we reach the halfpoint of our way before we reach the our
+            % maximum velocity
+            % determines if we have trapezoidal or triangular profile
+            s_critical = vc^2 / amax;
+            if s_critical >= s_totalal    %triangular
+                t_a_total =  sqrt(s_totalal / amax);     
 
-                %Lineare Phase
-                s_lin = s_tot - 2 * sb; %Weg der linearen Phase
-                t_lin  = s_lin / vc; %Zeit für diese Strecke
-                tx(2) = t_ipo * ceil(t_lin / t_ipo);
+                time_difference = mod(t_a_total, t_ipo);
+                if time_difference ~= 0
+                    delta = t_ipo - time_difference;
+                    t_a_total = t_a_total + delta;
+                    t_d_total = t_a_total;
+                    t_c_total = 0;
+                    amax = s_totalal / (t_a_total^2 + t_a_total * t_c_total);
+                end
+                tx = [ t_a_total 0 t_a_total]        % t_a_total = t_d_total
+                ax = [amax 0 -amax];    
+
+            else                                % trapezoidal
+                t_a_total = vc / amax;    
+                s_a = amax * t_a_total^2 / 2;
+                s_d = s_a;
+                s_c = s_totalal - s_a - s_d;
+                t_c_total = s_c / vc;
+
+                time_difference = mod(t_a_total, t_ipo);
+                if time_difference ~= 0        
+                     delta = t_ipo - time_difference;
+                    t_a_total = t_a_total + delta;
+                    t_d_total = t_a_total;
+                end
+                %t_c_total = 0;
+                time_difference = mod(t_c_total, t_ipo);
+                if time_difference ~= 0
+                    delta = t_ipo - time_difference;
+                    t_c_total = t_c_total + delta;
+                end 
+
+                 tx = [t_a_total t_c_total t_a_total];   % t_a_total = t_d_total
+                 ax = [amax 0 -amax];
             end
         end
         
@@ -246,39 +358,40 @@ classdef Robot < handle
             %****************************************************************
             %Implement your code here
 
+
+                t=[0 0 0 0 0];
+            a=[0 0 0 0 0];
+            v=[0 0 0 0 0];
+            s=[0 0 0 0 0];
+
             t_tot = sum(t_seg);
             segment_count = floor(t_tot/t_ipo+1);
 
             t = zeros(segment_count,1);
-
             for i = 1:segment_count
                 t(i) = (i-1)*t_ipo;
             end
 
-            a = zeros(segment_count,1);
-
-            i=1;
+            a = zeros(segment_count, 1);
+            i = 1;
             for j = 0:t_ipo:(t_seg(1)-t_ipo)
-                a(i)=a_seg(1);
-                i=i+1;
+                a(i) = a_seg(1);
+                i= i+1;
             end
             for j = t_seg(1):t_ipo:(t_seg(1)+t_seg(2)-t_ipo)
-                a(i)=a_seg(2);
-                i=i+1;
+                a(i) = a_seg(2);
+                i= i+1;
             end
             for j = (t_seg(1)+t_seg(2)):t_ipo:(t_seg(1)+t_seg(2)+t_seg(3)-t_ipo)
-                a(i)=a_seg(3);
-                i=i+1;
+                a(i) = a_seg(3);
+                i = i+1;
             end
-
-            a(i)=0;
 
             v = zeros(segment_count,1);
             s = zeros(segment_count,1);
-
             for i = 2:segment_count
-                v(i)=v(i-1)+a(i-1)*t_ipo;
-                s(i)=s(i-1)+v(i)*t_ipo;
+                v(i)=v(i-1) + a(i-1) * t_ipo;
+                s(i)=s(i-1) + v(i) * t_ipo;
             end     
         end 
         
@@ -300,21 +413,21 @@ classdef Robot < handle
             %****************************************************************
             %Implement your code here
 
-            s_tot = s(end);
+            ec{1}=[0 0 0 0 0 0];
+            ec{2}=[0 0 0 0 0 0];
 
-            %ec = cell(6);
 
-            for i = 1:length(s)
+            s_total = s(end);
 
-                x = e1(1)+(e2(1)-e1(1))*s(i)/s_tot;
-                y = e1(2)+(e2(2)-e1(2))*s(i)/s_tot;
-                z = e1(3)+(e2(3)-e1(3))*s(i)/s_tot;
-                a = e1(4)+(e2(4)-e1(4))*s(i)/s_tot;
-                b = e1(5)+(e2(5)-e1(5))*s(i)/s_tot;
-                c = e1(6)+(e2(6)-e1(6))*s(i)/s_tot;
+            for i = 1:length(s) 
+                x = e1(1) + (e2(1) - e1(1)) * s(i) / s_total;
+                y = e1(2) + (e2(2) - e1(2)) * s(i) / s_total;
+                z = e1(3) + (e2(3) - e1(3)) * s(i) / s_total;
+                a = e1(4) + (e2(4) - e1(4)) * s(i) / s_total;
+                b = e1(5) + (e2(5) - e1(5)) * s(i) / s_total;
+                c = e1(6) + (e2(6) - e1(6)) * s(i) / s_total;
 
-                ec{i} = [x,y,z,a,b,c];
-
+                ec{i} = [x, y, z, a, b, c];
             end
         end
         
