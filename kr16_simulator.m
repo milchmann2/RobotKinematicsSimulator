@@ -5,9 +5,9 @@ clc;
 close all;
 
 % %Parameters for Trajectory Generation
-t_ipo=0.01;
-amax=20;
-vc=50;
+t_ipo=0.1;
+amax=1500;
+vc=500;
 pose=3;
 clear1=1;
  
@@ -30,8 +30,8 @@ robot.Base(3,4)=400;
 
 % %Robot Trajectory in Euler Coordinates
 % e{1}=[930.91,0,1485,0,180,0,0];
-e{1}=[0,1000,1000,0,180,0,2*vc];
-e{2}=[0,1000,1500,0,180,0,2*vc];
+% % e{1}=[0,1000,1000,0,180,0,2*vc];
+% % e{2}=[0,1000,1500,0,180,0,2*vc];
 % e{3}=[0,-1500,1000,0,180,0,vc/2];
 % e{4}=[500,-1000,1000,0,180,0,vc];
 % e{5}=[500,-1100,1000,-90,90,0,vc];
@@ -83,7 +83,7 @@ e{2}=[0,1000,1500,0,180,0,2*vc];
 % e{2}=[200,20, 100, 0, 0, 0, 0];
 % e{3}=[0,300, 0, 90, 0, 0, 0];
 
-% e{1}=[930.91,0,1485,0,180,0,0];
+e{1}=[930.91,0,1485,0,180,0,0];
 % e{2}=[500,-1000,1000,0,180,0,2*vc];
 % e{2}=[500,-1000,1000,0,180,0,2*vc];
 % e{3}=[500,-1000,400,0,180,0,vc/2];
@@ -99,6 +99,10 @@ e{2}=[0,1000,1500,0,180,0,2*vc];
 % e{13}=[500,1100,1000,90,90,0,vc];
 % e{14}=[930.91,0,1485,0,180,0,2*vc];
 
+%e{1}=[1725,0,1075,0,90,0,0];
+e{1}=[1600,0,1075,0,90,0,0];
+e{2}=[0,1600,1075,0,0,0,90];
+% e{2}=[500,-1000,1000,0,180,0,2*vc];
 %**************************************************************************
 %Implement your code to calculate the trajectory in axis coordinates here
 %Use create_lin_seg-list, create_lin_int_vec and create_lin_path
@@ -123,7 +127,10 @@ gyrosZ = zeros(1, joints);
 gyrosY = zeros(1, joints);
 gyrosX = zeros(1, joints);
 p{1, joints} = 0;
-
+jointVelocities = zeros(1, joints);
+time = 0;
+position = zeros(1, joints);
+qg = zeros(6,1);
 for seg = 2:length(e)
     
     e1 = e{seg-1}(1:6);
@@ -154,14 +161,20 @@ for seg = 2:length(e)
             for i=1:joints
                 p{q_i, i} = gyro.CalculatePosition(Tsub{i});
             end
+            position(1,:) = deg2rad(q)';
+            q1(1) = 0;
         else
             % angle change since the previous time step
             q_d = q(:,q_i) - q(:,q_i-1);
+            time(q_i) = time(q_i-1) + t_ipo;
+            position(q_i,:) = deg2rad(q(:,q_i))';
             % cc2 need to only send recent q in, not whole matrix
             [T Tsub, rot] = robot.fk_craig(q, robot);
             for i=1:joints
                 p{q_i, i} = gyro.CalculatePosition(Tsub{i});
             end
+            jointVelocities(q_i,:) = robot.CalculateJointVelocities(q_d, t_ipo);
+            q1(q_i) = q_d(1)/t_ipo;
         end
 
         if (q_i ~= 1)
@@ -176,7 +189,7 @@ for seg = 2:length(e)
                 if det(R)<0
                     R(:,2) = R(:,2) * -1;
                 end
-
+    
                 rt = t_2_xyzabc(R, 1);
                 a = rt(1);
                 b = rt(2);
@@ -187,9 +200,16 @@ for seg = 2:length(e)
                 Rx = rotx(c);
                 Ry = roty(b);
                 Rz = rotz(a);
+                % cc1
                 omegaX = (RDx*Rx')*c/(1/t_ipo);
                 omegaY = (RDy*Ry')*b/(1/t_ipo);
                 omegaZ = (RDz*Rz')*a/(1/t_ipo);
+                if i == 4
+                    a = 1;
+                    q_d;
+%                     qg = qg+q_d
+                end
+                
                 gyrosX(q_i, i) = omegaX(3,2);
                 gyrosY(q_i, i) = omegaY(1,3);
                 gyrosZ(q_i, i) = omegaZ(2,1);
@@ -209,6 +229,12 @@ end
 %**************************************************************************
 %assignin('base', 'gyroz', gyroz);
 %assignin('base', 'realgyroz', realgyroz);
+q2 = gyrosZ(:,1);
+assignin('base', 'q1', q1);
+assignin('base', 'q2', q2);
+assignin('base', 'gyrosZ', gyrosZ);
+assignin('base', 'gyrosY', gyrosY);
+assignin('base', 'gyrosX', gyrosX);
 
 % initialize graph
 figure(1);
@@ -216,12 +242,28 @@ clf;
 %  axis([-100 500 -100 500 -0.2 500]);
 axis([-2000 2000 -2000 2000 -0.2 2000]);
 view([102,20]);
-% view(2);
+% view(90,0);
+
 grid on;
 xlabel('X'); ylabel('Y'); zlabel('Z');
 
-
-draw_robot_path(q,t_ipo,robot,100,clear1, p);
+% cc2
+%draw_robot_path(q,t_ipo,robot,100,clear1, p);
+% figure(3)
+% axis([0 1700 0 1700]);
+% for j=i:size(p,1)
+%     cla
+%     p1 = p(j,:);
+%     hold on
+%     axis([-20 1700 -20 1700]);
+%     for i=1:size(p1,2)
+%         
+%         plot3(p1{i}{1}(1, 4), p1{i}{1}(2, 4), p1{i}{1}(3, 4), 'bx');
+%         plot3(p1{i}{2}(1, 4), p1{i}{2}(2, 4), p1{i}{2}(3, 4), 'go');
+%         plot3(p1{i}{3}(1, 4), p1{i}{3}(2, 4), p1{i}{3}(3, 4), 'r*');
+%     end
+% end
+    
 
 for j=1:joints
     legendStrings{j} = int2str(j);
@@ -231,12 +273,13 @@ gyros{2} = gyrosY;
 gyros{3} = gyrosZ;
 gyrosTitle = {'Gyro X', 'Gyro Y', 'Gyro Z'};
 
+figure
 for i=1:3
     subplot(3,1,i)
     hold on;
     for j=1:joints
         if j == 4
-            plot(gyros{i}(:,j), 'x');    
+            plot(gyros{i}(:,j));    
         elseif j == 3
             plot(gyros{i}(:,j), 'o');
         else
@@ -246,4 +289,91 @@ for i=1:3
     legend(legendStrings);
     title(gyrosTitle{i});
 end
+
+
+
+% log.gyroX = gyrosX;
+% log.gyroY = gyrosY;
+% log.gyroZ = gyrosZ;
+% log.velocity = jointVelocities;
+% numModules = joints;
+% log.time = time;
+% log.position = position;
+% % Identify the base module based on the one that moved least
+% % The index of the smallest value in meanVels corresponds to the base
+% % module, becuase the IMU is before anything that moves.
+% meanVels = mean( [ mean(abs(log.gyroX));
+%                    mean(abs(log.gyroY));
+%                    mean(abs(log.gyroZ)) ] );
+% 
+% for proximal = 1:numModules
+%     for distal = 1:numModules
+% 
+%         proximalModule = proximal; 
+%         distalModule = distal;
+%         a = log.gyroX(:,proximalModule);
+%         b = log.gyroY(:,proximalModule);
+%         c = log.gyroZ(:,proximalModule);
+%         d = log.velocity(:,proximalModule);
+%         proximalVels = [ log.gyroX(:,proximalModule) ...
+%                      log.gyroY(:,proximalModule) ...
+%                      log.gyroZ(:,proximalModule) + log.velocity(:,proximalModule)];
+% 
+%         distalVels = [ log.gyroX(:,distalModule) ...
+%                      log.gyroY(:,distalModule) ...
+%                      log.gyroZ(:,distalModule) ];
+% 
+%         % Rotate baseVels by the joint angle
+%         for i=1:length(log.time)
+%             proximalVels(i,:) = ...
+%                 [R_z(-log.position(i,proximalModule)) * proximalVels(i,:)']';
+%         end
+% 
+%         % Dot-product all the velocities
+%         A = distalVels' * proximalVels;
+% 
+%         % Take the SVD
+%         [U,S,V] = svd(A);
+%         
+%         % Get the determinant of U*V
+%         S_SO3 = diag( [1, 1, sign(det(U*V))] );
+% 
+%         % Get the rotation
+%         R = V * S_SO3 * U';
+% 
+% 
+%         %% RESIDUAL ERROR
+%         errors(proximal,distal) = ...
+%             mean(mean((proximalVels - [R*distalVels']').^2));
+%         
+%         R_tests(:,:,proximal,distal) = R;
+%         
+% %         %% PLOTTING
+% %         figure(123);
+% %         plot(log.time,baseVels);
+% %         hold on;
+% %         plot(log.time,[R*nextVels']','--');
+% %         hold off;
+% %         
+% %         legend x y z x y z
+% %         title(['Velocities: ' num2str(proximal) '-->' num2str(distal) ]);
+% %         xlabel('time (sec)');
+% %         ylabel('angular velocity (rad/sec)');
+% %         drawnow;
+% %         pause;
+%         
+%     end
+% end
+% 
+% %% FINAL RESULT
+% 
+% errorThresh = .02;
+% connectionMatrix = errors < errorThresh
+% 
+% figure
+% imagesc(errors);
+% title('Velocity Matching Error');
+% xlabel('distal module');
+% ylabel('proximal module');
+% colorbar;
 

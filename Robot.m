@@ -8,7 +8,6 @@ classdef Robot < handle
         Endeffector
         NumberOfJoints = 0;
         Joints;   
-
     end
     
     methods
@@ -464,6 +463,10 @@ classdef Robot < handle
                 obj.Joints.AnglesY(i, 1) = obj.Joints.AnglesY(i, 1) - obj.Joints.AnglesY(i-1, 1);
                 obj.Joints.AnglesZ(i, 1) = obj.Joints.AnglesZ(i, 1) - obj.Joints.AnglesZ(i-1, 1);
             end
+        end
+        
+        function jointVelocities = CalculateJointVelocities(obj, dq, dt)
+            jointVelocities = dq./dt; 
         end
         
     end
