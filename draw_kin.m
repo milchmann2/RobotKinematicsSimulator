@@ -37,8 +37,13 @@ for ii=2:nk
 end 
 
 for i=1:size(p,2)
-    plot3(p{i}{1}(1, 4), p{i}{1}(2, 4), p{i}{1}(3, 4), 'bo');
-    plot3(p{i}{2}(1, 4), p{i}{2}(2, 4), p{i}{2}(3, 4), 'bo');
-    plot3(p{i}{3}(1, 4), p{i}{3}(2, 4), p{i}{3}(3, 4), 'bo');
+    drawingMode = {'bo', 'go', 'ro'};
+    for j=1:3
+        
+        plot3(p{i}{j}{1}(1, 4), p{i}{j}{1}(2, 4), p{i}{j}{1}(3, 4), drawingMode{j});
+        plot3(p{i}{j}{2}(1, 4), p{i}{j}{2}(2, 4), p{i}{j}{2}(3, 4), drawingMode{j});
+        plot3(p{i}{j}{3}(1, 4), p{i}{j}{3}(2, 4), p{i}{j}{3}(3, 4), drawingMode{j});
+    end
 end
+
 
