@@ -6,15 +6,30 @@ classdef Gyros
         GyroX
         GyroY
         GyroZ 
-        pp1 = [1 0 0 0; 0 1 0 0; 0 0 1 0; 1, 1, 0,1 ]';
-        pp2 = [1 0 0 0; 0 1 0 0; 0 0 1 0; 1, -1, 0, 1]';
-        pp3 = [1 0 0 0; 0 1 0 0; 0 0 1 0; -1, 0, 0, 1]';
-%         pp1 = [1 0 0 0; 0 1 0 0; 0 0 1 0; 0, 1, 1,1 ]';
+        pp = cell(1,1)
+%                 pp1 = [1 0 0 0; 0 1 0 0; 0 0 1 0; 0, 1, 1,1 ]';
 %         pp2 = [1 0 0 0; 0 1 0 0; 0 0 1 0; -1, -1, 2, 1]';
 %         pp3 = [1 0 0 0; 0 1 0 0; 0 0 1 0; 0, -1, 0, 1]';
     end
     
     methods
+        function obj = Gyros()
+            % pp{1} = x
+            % pp{2} = y
+            % pp{3} = z
+            obj.pp{1}{1} = [1 0 0 0; 0 1 0 0; 0 0 1 0; 0, -1, 1, 1]';
+            obj.pp{1}{2} = [1 0 0 0; 0 1 0 0; 0 0 1 0; 0, 1, 1, 1]';
+            obj.pp{1}{3} = [1 0 0 0; 0 1 0 0; 0 0 1 0; 0, 0, -1, 1]';
+
+            obj.pp{2}{1} = [1 0 0 0; 0 1 0 0; 0 0 1 0; 1, 0, 1, 1]';
+            obj.pp{2}{2} = [1 0 0 0; 0 1 0 0; 0 0 1 0; -1, 0, 1, 1]';
+            obj.pp{2}{3} = [1 0 0 0; 0 1 0 0; 0 0 1 0; 0, 0, -1, 1]';
+
+            obj.pp{3}{1} = [1 0 0 0; 0 1 0 0; 0 0 1 0; 1, 1, 0,1]';
+            obj.pp{3}{2} = [1 0 0 0; 0 1 0 0; 0 0 1 0; 1, -1, 0, 1]';
+            obj.pp{3}{3} = [1 0 0 0; 0 1 0 0; 0 0 1 0; -1, 0, 0, 1]';
+        
+        end
         function [rot, tr] = CalculateRotations(obj, q, px, py, pz, robot)
             % cc2
             if (size(robot.Joints.AnglesX,2) == 1)
@@ -52,9 +67,22 @@ classdef Gyros
         end
         
         function p = CalculatePosition(obj, tr)  
-            p{1} = tr*obj.pp1;
-            p{2} = tr*obj.pp2;
-            p{3} = tr*obj.pp3;
+            solution = t_2_xyzabc(tr, 1);
+            angle(1) = solution(3);
+            angle(2) = solution(2);
+            angle(3) = solution(1);
+            T_t = trans(solution(4), solution(5), solution(6));
+            T_t = [0 0 0 solution(4); 0 0 0 solution(5); 0 0 0 solution(6); 0 0 0 0];
+            T{1} = rotx(solution(3)) + T_t;
+            T{2} = roty(solution(2)) + T_t;
+            T{3} = rotz(solution(1)) + T_t;
+            for i=1:3
+                for j=1:3
+                    p{i}{j} = T{i}*obj.pp{i}{j};
+%                     p{i}{j} = T{j}*obj.pp{i}{j};
+%                     p{i}{j} = T{j}*obj.pp{i}{j};
+                end
+            end
         end
             
         function pr = CalculateR(obj, rot, p)          
@@ -62,25 +90,22 @@ classdef Gyros
 %             p{2} = tr1*obj.pp2;
 %             p{3} = tr1*obj.pp3;  
             if (~iscell(p))
-                pr{1} = rot*obj.pp1;
-                pr{2} = rot*obj.pp2;
-                pr{3} = rot*obj.pp3;
+                for i=1:3
+                    for j=1:3
+                        pr{i, j} = rot*obj.pp{i}{j};
+                        pr{i, j} = rot*obj.pp{i}{j};
+                        pr{i, j} = rot*obj.pp{i}{j};
+                    end 
+                end
             else
-                pr{1} = rot*p{1};
-                pr{2} = rot*p{2};
-                pr{3} = rot*p{3};
-            end
-        end
-        
-        function pt = CalculateT(obj, rot, p, t)
-            if (~iscell(p))
-                pt{1} = rot*obj.pp1 + t;
-                pt{2} = rot*obj.pp2 + t;
-                pt{3} = rot*obj.pp3 + t;
-            else
-                pt{1} = rot*p{1} + t;
-                pt{2} = rot*p{2} + t;
-                pt{3} = rot*p{3} + t;
+                for i=1:3
+                    for j=1:3                
+                        pr{i, j} = rot*p{i, j};
+                        pr{i, j} = rot*p{i, j};
+                        pr{i, j} = rot*p{i, j};
+                    end
+                end
+                
             end
         end
     end
