@@ -52,17 +52,19 @@ function solution = t_2_xyzabc(T,pose)
 %     y = T(2,4);
 %     z = T(3,4);
 
-    b = atan2(-T(3,1), sqrt(T(1,1)^2 + T(2,1)^2));
+
+
+    b = rad2deg(atan2(-T(3,1), sqrt(T(1,1)^2 + T(2,1)^2)));
     
     if b == 90
         a = 0;
-        c = atan2(T(1,2), T(2,2));
+        c = rad2deg(atan2(T(1,2), T(2,2)));
     elseif b == -90
         a = 0;
-        c = -atan2(T(1,2), T(2,2));
+        c = rad2deg(-atan2(T(1,2), T(2,2)));
     else
-        a = atan2(T(2,1)/cos(b), T(1,1)/cos(b));
-        c = atan2(T(3,2)/cos(b), T(3,3)/cos(b));
+        a = rad2deg(atan2(T(2,1)/cosd(b), T(1,1)/cosd(b)));
+        c = rad2deg(atan2(T(3,2)/cosd(b), T(3,3)/cosd(b)));
     end
     
     x = T(1,4);
