@@ -298,7 +298,7 @@ for seg = 2:length(e)
                         R = rotz(angle);
                     end
                     angle = deg2rad(angle);
-                    omega{j} = (RD{j}*R')*angle/(1/t_ipo);
+                    omega{j} = (RD{j}*R')*angle*(1/t_ipo);
                     
                     if j == 1
                         gyros{q_i}{i}{j} = omega{j}(3,2);
@@ -348,7 +348,7 @@ grid on;
 xlabel('X'); ylabel('Y'); zlabel('Z');
 
 % cc2
-draw_robot_path(q,t_ipo,robot,100,clear1, p);
+% draw_robot_path(q,t_ipo,robot,100,clear1, p);
 
 
 % figure(3)
