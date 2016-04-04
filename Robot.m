@@ -7,13 +7,16 @@ classdef Robot < handle
         Base
         Endeffector
         NumberOfJoints = 0;
-        Joints;   
+        Joints;
+        Gyros;
+        GyroPositions;
+        TimeStep;
+        Time;
     end
     
     methods
 
-
-        function obj = Robot()
+        function obj = Robot(q, timeStep)
             % robot = kr16_robot()
             % creates a structure with robot parameters for the KUKA KR16-2 robot
             % dimensions are in mm, degrees in deg, velocitis in m/s or deg/s
@@ -47,24 +50,43 @@ classdef Robot < handle
 %                         1,1,90,200,0,0;
 %                         1,1,0,100,0,0
 %                         ];        
-
+            
+            if nargin < 1
+                nargin
+                q = -1;
+                timeStep = 0;
+            elseif  nargin == 1
+                timeStep = 0;
+            end
+            
+            obj.TimeStep = timeStep;
+            
             obj.DHP= [    
-                                    1, 1,   180,    0,      -675,   0;
-                                    1, 1,   90,     260,    0,      0;
-                                    1, 1,   0,      680,    0,      90;
-                                    1, 1,   -90,    35,     -670,   0;
-                                    1, 1,   90,     0,      0,          0;
-                                    1, -1,  90,     0,      115,    0];
+                        1, 1,   180,    0,      -675,   0;
+                        1, 1,   90,     260,    0,      0;
+                        1, 1,   0,      680,    0,      90;
+                        1, 1,   -90,    35,     -670,   0;
+                        1, 1,   90,     0,      0,          0;
+                        1, -1,  90,     0,      115,    0];
 
             obj.Base = eye(4);
             obj.Endeffector = eye(4);
 
-
-                    
-
-
             obj.NumberOfJoints = size(obj.DHP, 1);
-            %obj.Gyros = 
+            
+            if q == -1
+                q = zeros(obj.NumberOfJoints, 1);
+            end
+            obj.Joints.PositionsRad(1, :) = q';
+            
+            [T, Tsub, rot] = obj.fk_craig(q, obj);
+            obj.Gyros = Gyro(obj.NumberOfJoints);
+            % cc2
+            obj.GyroPositions{1, 1} = 0;
+            obj.CalculateGyroPosition(Tsub);
+            
+            obj.JointPositions(q);
+            obj.Time = 0;
         end
         
         function [T, T_sub, rot] = fk_craig(obj, q,robot)
@@ -109,6 +131,7 @@ classdef Robot < handle
                 alpha = dhp(i,3);
                 a = dhp(i,4);
                 d = dhp(i,5);
+                
                 theta = dhp(i,6)+q(i)*dhp(i,2);
                 T_temp = dh_trafo_craig(alpha,a,d,theta);
                 T = T*T_temp;
@@ -288,8 +311,6 @@ classdef Robot < handle
             %error(nargchk(5,5,nargin));
 
             %****************************************************************
-            %Implement your code here
-
 
             tx=[0 0 0]';
             ax=[0 0 0]';
@@ -312,7 +333,7 @@ classdef Robot < handle
                     t_c_total = 0;
                     amax = s_totalal / (t_a_total^2 + t_a_total * t_c_total);
                 end
-                tx = [ t_a_total 0 t_a_total]        % t_a_total = t_d_total
+                tx = [ t_a_total 0 t_a_total];        % t_a_total = t_d_total
                 ax = [amax 0 -amax];    
 
             else                                % trapezoidal
@@ -353,12 +374,7 @@ classdef Robot < handle
 
             %error(nargchk(3,3,nargin));
 
-
-            %****************************************************************
-            %Implement your code here
-
-
-                t=[0 0 0 0 0];
+            t=[0 0 0 0 0];
             a=[0 0 0 0 0];
             v=[0 0 0 0 0];
             s=[0 0 0 0 0];
@@ -409,12 +425,8 @@ classdef Robot < handle
 
             %error(nargchk(3,3,nargin));
 
-            %****************************************************************
-            %Implement your code here
-
             ec{1}=[0 0 0 0 0 0];
             ec{2}=[0 0 0 0 0 0];
-
 
             s_total = s(end);
 
@@ -430,45 +442,43 @@ classdef Robot < handle
             end
         end
         
-        function DetermineLocalJointPositions(obj, T)
-            % TODO needs to be changed, takes fixed EE, and only x+y plane
-%             jointsAndEndEffector = [obj.DHP; 0 0 0 obj.Endeffector(1, 4) 0 0];
-%             q = [q(:,end); 0];
-%             obj.Joints.PositionsX(1) = obj.Base(1,4);
-%             obj.Joints.PositionsY(1) = obj.Base(2,4);
-%             
-%             for i=2:obj.NumberOfJoints+1
-%                 jointLength = jointsAndEndEffector(i, 4);
-%                 combinedAngle = sum(q(1:i-1));
-%                 px = jointLength*cosd(combinedAngle);
-%                 py = jointLength*sind(combinedAngle);
-%                 obj.Joints.PositionsX(i) = px;
-%                 obj.Joints.PositionsY(i) = py;
-%                 obj.Joints.PositionsX = obj.Joints.PositionsX';
-%                 obj.Joints.PositionsY = obj.Joints.PositionsY';
-%             end
-            obj.Joints.PositionsX = zeros(size(T, 1), 1);
-            for i=1:size(T, 1)
-                abcxyz = t_2_xyzabc(T{i}, 1);
-                obj.Joints.PositionsX(i, 1) = abcxyz(4);
-                obj.Joints.PositionsY(i, 1) = abcxyz(5);
-                obj.Joints.PositionsZ(i, 1) = abcxyz(6);
-                % cc2
-                obj.Joints.AnglesX(i, 1) = abcxyz(3);
-                obj.Joints.AnglesY(i, 1) = abcxyz(2);
-                obj.Joints.AnglesZ(i, 1) = abcxyz(1);
-            end
-            for i=size(obj.Joints.AnglesX, 1):-1:2
-                obj.Joints.AnglesX(i, 1) = obj.Joints.AnglesX(i, 1) - obj.Joints.AnglesX(i-1, 1);
-                obj.Joints.AnglesY(i, 1) = obj.Joints.AnglesY(i, 1) - obj.Joints.AnglesY(i-1, 1);
-                obj.Joints.AnglesZ(i, 1) = obj.Joints.AnglesZ(i, 1) - obj.Joints.AnglesZ(i-1, 1);
-            end
-        end
-        
         function jointVelocities = CalculateJointVelocities(obj, dq, dt)
+            dq = deg2rad(dq);
             jointVelocities = dq./dt; 
         end
         
+        function positions = CalculateGyroPosition(obj, T)
+            idx = size(obj.Gyros.Positions, 1) + 1;
+            
+            for i=1:obj.NumberOfJoints
+                if i == 1
+                    obj.Gyros.Positions{idx, i} = obj.Gyros.CalculatePosition([1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1]);
+                else
+                    obj.Gyros.Positions{idx, i} = obj.Gyros.CalculatePosition(T{i-1}); 
+                end
+            end
+            positions = obj.Gyros.Positions{end, :};
+        end
+        
+        function jointPositions = JointPositions(obj, q)
+            obj.Joints.PositionsRad(end+1, :) = deg2rad(q)';
+            jointPositions = obj.Joints.PositionsRad(end, :);
+        end
+        
+        function time = CalcTime(obj);
+            if sum(size(obj.TimeStep)) ~= 2
+                time = obj.TimeStep(end);
+            else
+                time = obj.TimeStep;
+            end
+            obj.Time(end+1) = time(end-1) + time;
+            time = obj.TimeStep(end);
+        end
+        
+        function CalculateAngularVelocities(obj, timeStep)
+            obj.Gyros.CalculateAngularVelocities(timeStep);
+        end
+
     end
     
 end
