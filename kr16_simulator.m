@@ -3,7 +3,7 @@ function kr16_simulator()
 %
 clc;
 close all;
-
+clear all;
 
 % %Parameters for Trajectory Generation
 % t_ipo=0.1;
@@ -26,139 +26,9 @@ clear1=1;
 
 
 
-% robot.Endeffector(1:3,4)=[0,0,155]';
-
-% %Robot Trajectory in Euler Coordinates
-% e{1}=[930.91,0,1485,0,180,0,0];
-% % e{1}=[0,1000,1000,0,180,0,2*vc];
-% % e{2}=[0,1000,1500,0,180,0,2*vc];
-% e{3}=[0,-1500,1000,0,180,0,vc/2];
-% e{4}=[500,-1000,1000,0,180,0,vc];
-% e{5}=[500,-1100,1000,-90,90,0,vc];
-% e{6}=[500,-1500,1000,-90,90,0,vc/2];
-
-
-% e{1}=[50,0, 200, 0, 0, 0, 0];
-% e{2}=[100,50, 200, 0, 0, 0, 0];
-% e{3}=[0,150, 200, 0, 0, 0, 0];
-
-% e{1}=[0,300, 0, 90, 0, 0, 0];
-% % e{2}=[0,250, 0, 90, 0, 0, 0];
-
-% %Robot Trajectory in Euler Coordinates
-% e{1}=[100,100,0,0,0,0,0];
-% e{2}=[0,200, 0, 90, 0, 0, 1];
-% e{3}=[0,300, 0, 90, 0, 0, 0];
-
-%% top to bottom
-% e{1}=[0,300, 0, 90, 0, 0, 0];
-% e{2}=[300,0, 0, 90, 0, 0, 1];
-% e{3}=[200,100,0,90,0,0,0];
-
-% % straight down
-% e{1}=[0,299, 0, 0, 0, 0, 0];
-% e{2}=[0,300, 0, 90, 0, 0, 0];
-
-
-% % straight down then to bottom arc
-% e{1}=[0,300, 0, 90, 0, 0, 0];
-% % e{2}=[0,250, 0, 90, 0, 0, 0];
-% % e{3}=[25,250, 0, 90, 0, 0, 0];
-% e{2}=[300,0, 0, 0, 90, 90, 0];
-
-% 
-
-% % % top to bottom without singularities
-% e{1}=[10,150, 0, 75, 0, 0, 0];
-% e{2}=[200,20, 0, 0, 0, 0, 0];
-% e{3}=[0,300, 0, 90, 0, 0, 0];
-% e{1}=[300,0, 0, 0, 0, 0, 0];
-% e{2}=[0,300, 0, 90, 0, 0, 0];
-
-% e{3}=[0,300, 0, 90, 0, 0, 0];
-
-
-% % top to bottom without singularities ZZZZZ
-% e{1}=[10,150, 50, 75, 0, 0, 0];
-% e{2}=[200,20, 100, 0, 0, 0, 0];
-% e{3}=[0,300, 0, 90, 0, 0, 0];
-
-%cc4
-% e{1}=[930.91,0,400,0,180,0,0];
-% e{2}=[930.91,0,1600,0,180,0,2*vc];
-
 %% wide movements
-e{1}=[0, 1400,1800,0,0,-90,0];
-e{2}=[1000,0,100,90,0,180,2*vc];
-e{3}=[100,100,2200,0,0,0,2*vc];
-e{4}=[700, 700,700,0,0,-90,0];
-e{5}=[700,-700,100,-90,0,-90,2*vc];
-e{6}=[1400,100,1000,-90,90,0,2*vc];
-
-% e{1}=[800, 1000,400,0,0,0,0];
-%  e{2}=[1000,0,100,0,0,0,2*vc];
-% e{3}=[800, 1400,350,0,0,-90,2*vc];
-% e{4}=[1000,800,900,90,0,180,2*vc];
 
 
-% e{5}=[1000,1000,500,90,0,0,2*vc];
-% e{6}=[1000,500,1000,0,90,0,2*vc];
-% e{7}=[1000,1000,500,0,0,0,2*vc];
-% e{8}=[1000,500,1000,90,0,0,2*vc];
-% 
-% e{9}=[1000,1000,500,90,0,0,2*vc];
-% e{10}=[500,1000,1000,90,0,90,2*vc];
-% e{11}=[1000,1000,500,90,0,0,2*vc];
-% e{12}=[500,1000,1000,0,90,0,2*vc];
-% 
-% e{13}=[1000,1000,500,10,10,10,2*vc];
-% e{14}=[1000,1000,510,20,20,20,2*vc];
-% e{15}=[1000,1000,520,30,30,30,2*vc];
-% e{16}=[1000,1000,530,40,40,40,2*vc];
-
-% e{14}=[0, 1400,1800,0,0,-90,0];
-% e{15}=[1000,0,100,90,0,180,2*vc];
-% e{16}=[100,100,2200,0,0,0,2*vc];
-% e{17}=[700, 700,700,0,0,-90,0];
-% e{18}=[700,-700,100,-90,0,-90,2*vc];
-% e{19}=[1400,100,1000,-90,90,0,2*vc];
-
-
-% e{20}=[1000,1000,510,20,20,20,2*vc];
-% e{21}=[700,-700,100,-90,0,-90,2*vc];
-% e{22}=[1000,0,1000,90,0,180,2*vc];
-% e{23}=[1400,100,1000,-90,90,0,2*vc];
-% e{24}=[0, 1400,1000,0,0,-90,0];
-% e{25}=[1000,500,1000,90,0,0,2*vc];
-% e{26}=[500,1000,1000,0,90,0,2*vc];
-
-% 
-% e{1}=[0, 1400,1000,90,90,90,0];
-% e{2}=[0, 1300,1100,180,90,90,0];
-% e{3}=[0, 1400,1100,180,90,90,0];
-% e{4}=[0, 1300,1100,180,180,180,0];
-% e{5}=[0, 1400,1000,-45,180,-90,0];
-% e{6}=[0, 1300,1100,-90,75,-100,0];
-% e{7}=[0, 1400,1000,-110,130,-180,0];
-% e{8}=[0, 1300,1100,180,-165,-75,0];
-% e{9}=[0, 1400,1000,90,-180,-10,0];
-% e{10}=[0, 1300,1000,0,0,0,0];
-% e{11}=[0, 1400,1000,45,0,0,0];
-% e{12}=[0, 1400,1000,90,0,0,0];
-% e{13}=[0, 1400,1000,146,0,0,0];
-% 
-% e{1}=[0, 1400,1000,0,0,0,0];
-% e{2}=[100, 1300,1100,0,0,0,0];
-% e{3}=[0, 1400,1000,0,0,0,0];
-% e{4}=[100, 1300,1100,0,0,0,0];
-% e{5}=[0, 1400,1000,0,0,0,0];
-% e{6}=[100, 1300,1100,0,0,0,0];
-
-%**************************************************************************
-%Implement your code to calculate the trajectory in axis coordinates here
-%Use create_lin_seg-list, create_lin_int_vec and create_lin_path
-%Calculate array q, so each column vector of q are the axis coordinates
-%    for one interpolated point of the trajectory
 
 
 %% This is a simple example of a trajectory in axis coordinates
@@ -167,50 +37,93 @@ e{6}=[1400,100,1000,-90,90,0,2*vc];
 % end
 
 % 
-q = [0, 0, 0, 0, 0, 0]';
 
-robot = Robot(q);
+
+robot = Robot();
 robot.Base(3,4)=400;
 joints = robot.NumberOfJoints;
 jointVelocities = zeros(1, joints);
+q = zeros(joints, 1);
 
 
-directJointControl = 0;
 
+angleControl = 1;
 
+if angleControl == 0
+    e{1}=[0, 1400,1800,0,0,-90,0];
+    e{2}=[1000,0,100,90,0,180,2*vc];
+    e{3}=[100,100,2200,0,0,0,2*vc];
+    e{4}=[700, 700,700,0,0,-90,0];
+    e{5}=[700,-700,100,-90,0,-90,2*vc];
+    e{6}=[1400,100,1000,-90,90,0,2*vc];
+end
+if angleControl == 1
+%     e = zeros(1,2);
+%     q_f = (struct2array(load('q.mat')));
+%     q_f = rad2deg(q_f);
+%     q_f = [q_f];
+%     t_ipo = struct2array(load('t_d.mat'));
+%     t_ipo = [t_ipo];
+    e = zeros(1,2);    
+    samples = [100, 100, 100, 100, 100, 100];%180;
+    ssamples = sum(samples);
+
+    q_f = zeros(ssamples, joints);
+    t_ipo = ones(1, ssamples)*0.02;
+    multipliers = [0.05 0.1 0.2 0.4 0.65 1];
+    for i=1:joints
+        x = linspace(0, 2*pi, samples(i));
+        y = rad2deg(sin(x)*multipliers(i));
+        if i == 1
+            start = 1;
+        else
+            start = sum(samples(1:i-1))+1;
+        end
+        last = sum(samples(1:i));
+        q_f(start:last,i) = y;
+    end
+end
 q_i = 2;
+
 for seg = 2:length(e)
     
-    e1 = e{seg-1}(1:6);
-    e2 = e{seg}(1:6);
-    v = 2*vc;
-    
-    [tx ax] = robot.create_lin_seg_list(e1,e2,v,amax,t_ipo);
-    [t, a, v, s] = robot.create_lin_intvec(tx, ax, t_ipo);
-    ec = robot.create_lin_path(e1,e2,s);
+    if angleControl == 0
+        e1 = e{seg-1}(1:6);
+        e2 = e{seg}(1:6);
+        v = 2*vc;
 
-    for i=1:length(ec)
+        [tx ax] = robot.create_lin_seg_list(e1,e2,v,amax,t_ipo(1));
+        [t, a, v, s] = robot.create_lin_intvec(tx, ax, t_ipo(1));
+        ec = robot.create_lin_path(e1,e2,s);
 
-        tg = xyzabc_2_t(ec{i}(1), ec{i}(2), ec{i}(3), ec{i}(4), ec{i}(5), ec{i}(6));
-        q(:,q_i) = robot.kr16_rk(tg,robot.Base,robot.Endeffector,pose);         
-        
-
-        if directJointControl == 1
-            if q_i == 1
+        maxIter = length(ec);
+        t_ipo = [t_ipo ones(1, maxIter)*t_ipo(1)];
+    elseif angleControl == 1
+        maxIter = length(t_ipo)-1;
+    end
+    for i=1:maxIter
+        if i == 1079
+            aaa = 1;
+        end
+        if angleControl == 0
+            tg = xyzabc_2_t(ec{i}(1), ec{i}(2), ec{i}(3), ec{i}(4), ec{i}(5), ec{i}(6));
+            q(:,q_i) = robot.kr16_rk(tg,robot.Base,robot.Endeffector,pose);         
+        elseif angleControl == 1
+            if i == 1
                 q(:, 1) = q_f(1,:)';
-            else 
-                q(:, q_i) = q_f(q_i,:)'; 
-            end
+            end 
+            q(:, q_i) = q_f(q_i,:)'; 
+            
         end
         
         q_d = q(:,q_i) - q(:,q_i-1);
 
-        robot.Time(q_i) = robot.Time(q_i-1) + t_ipo;    % t_ipo(q_i)
+        robot.Time(q_i) = robot.Time(q_i-1) + t_ipo(q_i);    % t_ipo(q_i)
         robot.JointPositions(q(:,q_i));
         [T Tsub rot] = robot.fk_craig(q, robot);
         robot.CalculateGyroPosition(Tsub);
-        jointVelocities(q_i,:) = robot.CalculateJointVelocities(q_d, t_ipo);   % t_ipo(q_i)
-        robot.CalculateAngularVelocities(t_ipo); % t_ipo(q_i)
+        jointVelocities(q_i,:) = robot.CalculateJointVelocities(q_d, t_ipo(q_i));   % t_ipo(q_i)
+        robot.CalculateAngularVelocities(t_ipo(q_i)); % t_ipo(q_i)
         q_i = q_i+1;        
        
     end
@@ -235,9 +148,9 @@ grid on;
 xlabel('X'); ylabel('Y'); zlabel('Z');
 
 % cc2
-% draw_robot_path(q,t_ipo,robot,100, 1, robot.Gyros.Positions);
+draw_robot_path(q,t_ipo,robot,100, 1, robot.Gyros.Positions);
 
-
+asd = 1
 % figure(3)
 % axis([0 1700 0 1700]);
 % for j=i:size(p,1)
