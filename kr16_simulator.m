@@ -3,7 +3,12 @@ function kr16_simulator()
 %
 clc;
 close all;
-clear all;
+% clear all;
+if ~exist('HebiLookup', 'class')
+    display('adding HEBI library');
+    addpath('hebi');
+    addpath(genpath('C:\Users\Milchmann\Dropbox\01 - FH\Master''s Thesis\07 - Simulator\Simulator\matlab_SEA'));
+end
 
 % %Parameters for Trajectory Generation
 % t_ipo=0.1;
@@ -57,6 +62,7 @@ if angleControl == 0
     e{5}=[700,-700,100,-90,0,-90,2*vc];
     e{6}=[1400,100,1000,-90,90,0,2*vc];
 end
+
 if angleControl == 1
 %     e = zeros(1,2);
 %     q_f = (struct2array(load('q.mat')));
@@ -64,23 +70,54 @@ if angleControl == 1
 %     q_f = [q_f];
 %     t_ipo = struct2array(load('t_d.mat'));
 %     t_ipo = [t_ipo];
-    e = zeros(1,2);    
-    samples = [100, 100, 100, 100, 100, 100];%180;
-    ssamples = sum(samples);
 
-    q_f = zeros(ssamples, joints);
-    t_ipo = ones(1, ssamples)*0.02;
-    multipliers = [0.05 0.1 0.2 0.4 0.65 1];
-    for i=1:joints
-        x = linspace(0, 2*pi, samples(i));
-        y = rad2deg(sin(x)*multipliers(i));
-        if i == 1
-            start = 1;
-        else
-            start = sum(samples(1:i-1))+1;
+
+    useLogFile = 1;
+    if useLogFile == 1
+        log = struct(HebiUtils.convertGroupLog('log1','view','full'));
+        q_f = log.position;
+        joints = size(log.position, 2);
+        jointVelocities = zeros(1, joints);
+        t_ipo = zeros(1, size(log.position, 1));
+        q = zeros(joints, 1);
+        for i=2:size(log.time,1)
+            t_ipo(i) = log.time(i) - log.time(i-1);
         end
-        last = sum(samples(1:i));
-        q_f(start:last,i) = y;
+        e = zeros(1,2) 
+        
+        inch2m = 0.0254;
+        kin = HebiKinematics();
+        kin.addBody('FieldableElbowJoint');
+        kin.addBody('FieldableElbowJoint');
+        kin.addBody('FieldableElbowLink', ...
+            'ext1', 4 * inch2m, 'twist1', pi/2, ...
+            'ext2', 0.5 * inch2m, 'twist2', pi);
+        kin.addBody('FieldableElbowJoint');
+        kin.addBody('FieldableStraightLink', ...
+            'ext', 6 * inch2m, 'twist', -pi/2);
+        kin.addBody('FieldableElbowJoint');
+        kin.addBody('FieldableGripper');
+        jointLocations = [1, 2, 4, 6, 7];
+        loghebi = HebiUtils.newGroupFromLog('log1.hebilog')
+    else
+        e = zeros(1,2);    
+        samples = [100, 100, 100, 100, 100, 100];%180;
+        ssamples = sum(samples);
+
+        q_f = zeros(ssamples, joints);
+        t_ipo = ones(1, ssamples)*0.02;
+        multipliers = [0.05 0.1 0.2 0.4 0.65 1];
+        for i=1:joints
+            x = linspace(0, 2*pi, samples(i));
+            y = rad2deg(sin(x)*multipliers(i));
+            if i == 1
+                start = 1;
+            else
+                start = sum(samples(1:i-1))+1;
+            end
+            last = sum(samples(1:i));
+            q_f(start:last,i) = y;
+        end
     end
 end
 q_i = 2;
@@ -118,12 +155,22 @@ for seg = 2:length(e)
         
         q_d = q(:,q_i) - q(:,q_i-1);
 
-        robot.Time(q_i) = robot.Time(q_i-1) + t_ipo(q_i);    % t_ipo(q_i)
-        robot.JointPositions(q(:,q_i));
-        [T Tsub rot] = robot.fk_craig(q, robot);
-        robot.CalculateGyroPosition(Tsub);
-        jointVelocities(q_i,:) = robot.CalculateJointVelocities(q_d, t_ipo(q_i));   % t_ipo(q_i)
-        robot.CalculateAngularVelocities(t_ipo(q_i)); % t_ipo(q_i)
+        if useLogFile == 1
+            Tsubt = kin.getForwardKinematics('output', q(:,q_i));
+            for i=1:joints
+                Tsub{i} = Tsubt(:, :, jointLocations(i));
+            end
+            robot.CalculateGyroPosition(Tsub);
+            jointVelocities(q_i,:) = robot.CalculateJointVelocities(q_d, t_ipo(q_i));
+            robot.CalculateAngularVelocities(t_ipo(q_i)); % t_ipo(q_i)
+        else
+            robot.Time(q_i) = robot.Time(q_i-1) + t_ipo(q_i);    % t_ipo(q_i)
+            robot.JointPositions(q(:,q_i));
+            [T Tsub rot] = robot.fk_craig(q, robot);
+            robot.CalculateGyroPosition(Tsub);
+            jointVelocities(q_i,:) = robot.CalculateJointVelocities(q_d, t_ipo(q_i));   % t_ipo(q_i)
+            robot.CalculateAngularVelocities(t_ipo(q_i)); % t_ipo(q_i)
+        end
         q_i = q_i+1;        
        
     end
@@ -148,7 +195,25 @@ grid on;
 xlabel('X'); ylabel('Y'); zlabel('Z');
 
 % cc2
-draw_robot_path(q,t_ipo,robot,100, 1, robot.Gyros.Positions);
+if useLogFile == 1
+         links = {{'FieldableElbowJoint'},
+                {'FieldableElbowJoint'},
+                {'FieldableElbowLink', ...
+                    'ext1', 4 * inch2m, 'twist1', pi/2, ...
+                    'ext2', 0.5 * inch2m, 'twist2', pi},
+                {'FieldableElbowJoint'},
+                {'FieldableStraightLink', ...
+                    'ext', 6 * inch2m, 'twist', -pi/2};   
+                 {'FieldableElbowJoint'},
+                 {'FieldableElbowJoint'}};
+     plt = HebiPlotter('JointTypes', links);
+     q = q';
+     for i=1:size(q,1)
+            plt.plot(q(i,:));
+    end
+else
+    draw_robot_path(q,t_ipo,robot,100, 1, robot.Gyros.Positions);
+end
 
 asd = 1
 % figure(3)
