@@ -15,7 +15,7 @@ end
 % amax=1500;
 % vc=500;
 % pose=3;
-% clear1=1;
+% clear1=1; 
  
 %robot.bas(3,4)=100;
 %robot.eff(1:3,4)=[0,0,100]';
@@ -53,7 +53,8 @@ q = zeros(joints, 1);
 
 
 angleControl = 1;
-
+useLogFile = 1;
+    
 if angleControl == 0
     e{1}=[0, 1400,1800,0,0,-90,0];
     e{2}=[1000,0,100,90,0,180,2*vc];
@@ -72,9 +73,9 @@ if angleControl == 1
 %     t_ipo = [t_ipo];
 
 
-    useLogFile = 1;
+
     if useLogFile == 1
-        log = struct(HebiUtils.convertGroupLog('log1','view','full'));
+        log = struct(HebiUtils.convertGroupLog('log2','view','full'));
         q_f = log.position;
         joints = size(log.position, 2);
         jointVelocities = zeros(1, joints);
@@ -83,7 +84,7 @@ if angleControl == 1
         for i=2:size(log.time,1)
             t_ipo(i) = log.time(i) - log.time(i-1);
         end
-        e = zeros(1,2) 
+        e = zeros(1,2) ;
         
         inch2m = 0.0254;
         kin = HebiKinematics();
@@ -98,7 +99,10 @@ if angleControl == 1
         kin.addBody('FieldableElbowJoint');
         kin.addBody('FieldableGripper');
         jointLocations = [1, 2, 4, 6, 7];
-        loghebi = HebiUtils.newGroupFromLog('log1.hebilog')
+        loghebi = HebiUtils.newGroupFromLog('log1.hebilog');
+        robot = Robot(log.position(1,:), 0, kin, jointLocations);
+        robot.NumberOfJoints = joints;
+        robot.Gyros.NumberOfGyros = joints;
     else
         e = zeros(1,2);    
         samples = [100, 100, 100, 100, 100, 100];%180;
@@ -187,13 +191,14 @@ end
 figure(1);
 clf;
 %  axis([-100 500 -100 500 -0.2 500]);
-axis([-2000 2000 -2000 2000 -0.2 2000]);
-view([102,20]);
+% axis([-2000 2000 -2000 2000 -0.2 2000]);
+% view([102,20]);
 % view(90,0);
 
 grid on;
 xlabel('X'); ylabel('Y'); zlabel('Z');
 
+% draw_robot_path(q,t_ipo,robot,0.1, 1, robot.Gyros.Positions, kin);
 % cc2
 if useLogFile == 1
          links = {{'FieldableElbowJoint'},
@@ -210,9 +215,19 @@ if useLogFile == 1
      q = q';
      for i=1:size(q,1)
             plt.plot(q(i,:));
+            
+            
+            key = get(gcf,'CurrentKey');
+            if(strcmp (key , 'return'))
+                break;
+            end
+    
     end
 else
-    draw_robot_path(q,t_ipo,robot,100, 1, robot.Gyros.Positions);
+%     axis([-10 10 -10 10 -10 10]);
+     axis([-2000 2000 -2000 2000 -0.2 2000]);
+    draw_robot_path(q,t_ipo,robot,0.1, 1, robot.Gyros.Positions);
+    
 end
 
 asd = 1
@@ -235,24 +250,36 @@ asd = 1
 for j=1:joints
     legendStrings{j} = int2str(j);
 end
-gyros{1} = robot.Gyros.OmegasX;
-gyros{2} = robot.Gyros.OmegasY;
-gyros{3} = robot.Gyros.OmegasZ;
+% gyros{1} = robot.Gyros.OmegasX;
+% gyros{2} = robot.Gyros.OmegasY;
+% gyros{3} = robot.Gyros.OmegasZ;
+% log.gyroX = robot.Gyros.OmegasX;
+% log.gyroY = robot.Gyros.OmegasY;
+% log.gyroZ = robot.Gyros.OmegasZ;
+% log.velocity = jointVelocities;
+% log.time = robot.Time;
+% log.position = robot.Joints.PositionsRad;
+% log.numModules = joints;
+
+gyros{1} = log.gyroX;
+gyros{2} = log.gyroY;
+gyros{3} = log.gyroZ;
 gyrosTitle = {'Gyro X', 'Gyro Y', 'Gyro Z'};
 
 figure
 for i=1:3
     subplot(3,1,i)
     hold on;
-    for j=1:joints
-%         if j == 4
-%             plot(gyros{i}(:,j));    
-%         elseif j == 3
-%             plot(gyros{i}(:,j), 'o');
-%         else
-            plot(gyros{i}(:,j));
-%         end
-    end
+%     for j=1:joints
+% %         if j == 4
+% %             plot(gyros{i}(:,j));    
+% %         elseif j == 3
+% %             plot(gyros{i}(:,j), 'o');
+% %         else
+%             plot(gyros{i}(:,j));
+% %         end
+%     end
+    plot(gyros{i})
     legend(legendStrings);
     title(gyrosTitle{i});
 end
@@ -269,13 +296,28 @@ end
 % log.position = [position;position;position;position;position;position];
 
 % cc5
-log.gyroX = robot.Gyros.OmegasX;
-log.gyroY = robot.Gyros.OmegasY;
-log.gyroZ = robot.Gyros.OmegasZ;
-log.velocity = jointVelocities;
-log.time = robot.Time;
-log.position = robot.Joints.PositionsRad;
-log.numModules = joints;
+
+
+
+% p = robot.Gyros.Positions;
+% figure
+% hold on
+% for l=1:size(robot.Gyros.Positions,1)
+%  p = robot.Gyros.Positions(l, :);
+%  cla
+%  hold on
+%     for i=1:size(robot.Gyros.Positions,2)
+% 
+%         drawingMode = {'bo', 'go', 'ro'};
+%         for j=1:3
+% 
+%             plot3(p{i}{j}{1}(1, 4), p{i}{j}{1}(2, 4), p{i}{j}{1}(3, 4), drawingMode{j});
+%             plot3(p{i}{j}{2}(1, 4), p{i}{j}{2}(2, 4), p{i}{j}{2}(3, 4), drawingMode{j});
+%             plot3(p{i}{j}{3}(1, 4), p{i}{j}{3}(2, 4), p{i}{j}{3}(3, 4), drawingMode{j});
+%         end
+%     end
+% end
+
 
 %jointDetectionDave(log);
 jointDetectionSingle(log);

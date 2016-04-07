@@ -12,11 +12,12 @@ classdef Robot < handle
         GyroPositions;
         TimeStep;
         Time;
+        kin;
     end
     
     methods
 
-        function obj = Robot(q, timeStep)
+        function obj = Robot(q, timeStep, kin, jointLocations)
             % robot = kr16_robot()
             % creates a structure with robot parameters for the KUKA KR16-2 robot
             % dimensions are in mm, degrees in deg, velocitis in m/s or deg/s
@@ -55,8 +56,12 @@ classdef Robot < handle
                 nargin
                 q = -1;
                 timeStep = 0;
+                kin = 0;
+                jointLocations = 0;
             elseif  nargin == 1
                 timeStep = 0;
+                kin = 0;
+                jointLocations = 0;
             end
             
             obj.TimeStep = timeStep;
@@ -68,7 +73,13 @@ classdef Robot < handle
                         1, 1,   -90,    35,     -670,   0;
                         1, 1,   90,     0,      0,          0;
                         1, -1,  90,     0,      115,    0];
-
+%             obj.DHP= [    
+%                         1, 1,   0,    0,      -10,   -90;
+%                         1, 1,   90,     10,    0,      0;
+%                         1, 1,   0,      50,    0,      90;
+%                         1, 1,   0,    20,     0,   0;
+%                         1, 1,   0,     20,      0,          0];
+                    
             obj.Base = eye(4);
             obj.Endeffector = eye(4);
 
@@ -79,11 +90,27 @@ classdef Robot < handle
             end
             obj.Joints.PositionsRad(1, :) = q';
             
-            [T, Tsub, rot] = obj.fk_craig(q, obj);
-            obj.Gyros = Gyro(obj.NumberOfJoints);
-            % cc2
-            obj.GyroPositions{1, 1} = 0;
-            obj.CalculateGyroPosition(Tsub);
+
+            if isa(kin,'HebiKinematics');
+                % cc1 TODO NEED TO CHANGE THAT
+                joints = 5;
+                
+%                 q = zeros(joints, 1);
+%                 obj.Joints.PositionsRad = zeros(1,joints);
+                obj.Joints.PositionsRad(1, :) = q';
+                Tsubt = kin.getForwardKinematics('output', q);
+                for i=1:joints
+                    Tsub{i} = Tsubt(:, :, jointLocations(i));
+                end
+                obj.Gyros = Gyro(joints);
+                obj.GyroPositions{1, 1} = 0;
+                obj.CalculateGyroPosition(Tsub);
+            else
+                [T, Tsub, rot] = obj.fk_craig(q, obj);
+                obj.Gyros = Gyro(obj.NumberOfJoints);
+                obj.GyroPositions{1, 1} = 0;
+                obj.CalculateGyroPosition(Tsub);
+            end
             
             obj.JointPositions(q);
             obj.Time = 0;
@@ -450,7 +477,7 @@ classdef Robot < handle
         function positions = CalculateGyroPosition(obj, T)
             idx = size(obj.Gyros.Positions, 1) + 1;
             
-            for i=1:obj.NumberOfJoints
+            for i=1:size(T,2)%obj.NumberOfJoints
                 if i == 1
                     obj.Gyros.Positions{idx, i} = obj.Gyros.CalculatePosition([1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1]);
                 else
